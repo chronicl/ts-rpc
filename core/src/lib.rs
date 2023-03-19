@@ -172,6 +172,11 @@ function {fn_name}({params}): __request.CancelablePromise<{response_type}> {{
             self,
         );
     }
+
+    #[cfg(feature = "axum-router")]
+    pub fn axum_router(&self) -> axum::Router {
+        self.axum_router.clone().unwrap()
+    }
 }
 
 fn is_ts_intrinstic_type(t: &str) -> bool {

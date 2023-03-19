@@ -24,7 +24,7 @@ async fn main() {
     api.export_ts_client("http://localhost:3003", "../api.ts")
         .unwrap();
 
-    let router = api.axum_router.take().unwrap();
+    let router = api.axum_router();
     let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 3003));
     axum::Server::bind(&addr)
         .serve(
