@@ -1,7 +1,7 @@
 ## Usage
 
 1. Choose a server. Right now we only support axum.
-2. Run the provided server example. It will generate the typescript api client and save it to examples/api.ts and start a server.
+2. Run the provided server example. It will generate the typescript api client, save it as api.ts and start a server.
 
 ```bash
 $ cd axum
