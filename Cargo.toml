@@ -12,13 +12,13 @@ members = [
 ]
 
 [workspace.dependencies]
-ts-rs = { git = "https://github.com/chronicl/ts-rs.git", rev = "4aac8be", version = "6.2" }
+ts-rs = { git = "https://github.com/chronicl/ts-rs.git", rev = "4aac8be" }
 axum = { version = "0.6" }
 
 [dependencies]
 ts-rs = { workspace = true }
-ts-rpc-core = { path = "core",  version = "0.1" }
-ts-rpc-macros = { path = "macros", version = "0.1" }
+ts-rpc-core = { path = "core" }
+ts-rpc-macros = { path = "macros" }
 
 [features]
 axum = ["ts-rpc-core/axum-router"]
