@@ -76,7 +76,6 @@ impl Api {
             }
 
             let fn_name = &ts_fn.name;
-            let namespace = format!("{fn_name}_namespace");
             let type_declarations = ts_fn
                 .type_declarations
                 .values()
@@ -150,9 +149,10 @@ function {fn_name}({params}): __request.CancelablePromise<{response_type}> {{
         std::fs::write(file_path, content)?;
         Ok(())
     }
+
     #[cfg(feature = "axum-router")]
     #[allow(clippy::extra_unused_type_parameters)]
-    pub fn register_axum<Request, Response, External, F>(&mut self, handler: F)
+    pub fn register_axum<Request, Response, External, F>(mut self, handler: F) -> Self
     where
         HandlerAxum<Request, Response, External, F>: ApiFn,
     {
@@ -169,8 +169,9 @@ function {fn_name}({params}): __request.CancelablePromise<{response_type}> {{
                 f: handler,
                 _marker: std::marker::PhantomData,
             },
-            self,
+            &mut self,
         );
+        self
     }
 
     #[cfg(feature = "axum-router")]
