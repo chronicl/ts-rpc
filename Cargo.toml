@@ -1,0 +1,24 @@
+[package]
+name = "ts-rpc"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+  "core",
+  "macros",
+  ".",
+  "examples/axum"
+]
+
+[workspace.dependencies]
+ts-rs = { git = "https://github.com/chronicl/ts-rs.git" }
+axum = { version = "0.6" }
+
+[dependencies]
+ts-rs = { workspace = true }
+ts-rpc-core = { path = "core" }
+ts-rpc-macros = { path = "macros" }
+
+[features]
+axum = ["ts-rpc-core/axum-router"]

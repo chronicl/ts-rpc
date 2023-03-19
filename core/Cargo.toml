@@ -1,0 +1,19 @@
+[package]
+name = "ts-rpc-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ts-rs = { workspace = true }
+inventory = "0.3"
+once_cell = "1.8"
+serde = { version = "1.0", features = ["derive"], optional = true }
+axum = { workspace = true, optional = true, features = ["json"]}
+hyper = { version = "0.14", optional = true }
+
+
+[default-features]
+default = ["axum-router"]
+
+[features]
+axum-router = ["axum", "hyper", "serde"]

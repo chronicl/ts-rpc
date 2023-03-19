@@ -1,0 +1,15 @@
+[package]
+name = "ts-rpc-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+
+[dependencies]
+ts-rpc-core = { path = "../core" }
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1.0"
+proc-macro-crate = "1.2"
