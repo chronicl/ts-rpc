@@ -41,7 +41,6 @@ fn ts_export_inner(_: TokenStream, input: TokenStream) -> Result<TokenStream, sy
                 ));
             }
             syn::FnArg::Typed(typed) => {
-                println!("{:?}", typed.ty);
                 input_types.push((*(typed.ty)).clone());
                 input_type_names.push((*(typed.pat)).clone());
             }
