@@ -131,3 +131,14 @@ pub(crate) fn get_crate_name(name: &str, internal: bool) -> TokenStream {
         quote!(#name)
     }
 }
+
+mod derive;
+
+// #[proc_macro_derive(TS2, attributes(ts))]
+// pub fn typescript(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+//     match derive::typescript(TokenStream::from(input)) {
+//         Err(err) => err.to_compile_error(),
+//         Ok(result) => result,
+//     }
+//     .into()
+// }

@@ -89,7 +89,7 @@ impl Api {
                     if is_ts_intrinstic_type(&t.1) {
                         format!("{}: {}", t.0, t.1)
                     } else {
-                        format!("{}: {fn_name}.{}", t.0, t.1)
+                        format!("{}: {}", t.0, prefix_type(fn_name, &t.1))
                     }
                 })
                 .collect::<Vec<_>>()
@@ -100,14 +100,11 @@ impl Api {
                 .map(|t| t.0)
                 .collect::<Vec<_>>()
                 .join(", ");
-            let response_type = &ts_fn.response_type;
+            let response_type = prefix_type(fn_name, &ts_fn.response_type);
             let server_url = server_url.as_ref();
 
             function_definitions += &format!(
                 r#"
-namespace {fn_name} {{
-    {type_declarations}
-}}
 function {fn_name}({params}): __request.CancelablePromise<{response_type}> {{
     return __request.request(
         {{ url: '{server_url}' }},
@@ -118,6 +115,9 @@ function {fn_name}({params}): __request.CancelablePromise<{response_type}> {{
             mediaType: 'application/json',
         }}
     )
+}}
+namespace {fn_name} {{
+    {type_declarations}
 }}
 "#
             );
@@ -180,11 +180,47 @@ function {fn_name}({params}): __request.CancelablePromise<{response_type}> {{
     }
 }
 
-fn is_ts_intrinstic_type(t: &str) -> bool {
-    match t {
-        "string" | "number" | "boolean" | "any" | "void" | "never" | "unknown" => true,
-        _ => false,
+fn prefix_type(prefix: &str, t: &str) -> String {
+    if is_ts_intrinstic_type(t) {
+        t.to_string()
+    } else if let Some(start) = t.find('<') {
+        let end = t.rfind('>').unwrap();
+        let inner = &t[start + 1..end];
+        let inner = inner
+            .split(',')
+            .map(|t| prefix_type(prefix, t.trim()))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("{}.{}<{}>", prefix, &t[..start], inner)
+    } else {
+        format!("{}.{}", prefix, t)
     }
+}
+
+fn is_ts_intrinstic_type(t: &str) -> bool {
+    matches!(
+        t,
+        "string" | "number" | "boolean" | "any" | "void" | "never" | "unknown"
+    )
+}
+
+#[test]
+fn test_prefix_type() {
+    assert_eq!(prefix_type("foo", "bar"), "foo.bar");
+    assert_eq!(prefix_type("foo", "bar<baz>"), "foo.bar<foo.baz>");
+    assert_eq!(
+        prefix_type("foo", "bar<baz, qux>"),
+        "foo.bar<foo.baz, foo.qux>"
+    );
+    assert_eq!(
+        prefix_type("foo", "bar<baz, qux<quux>>"),
+        "foo.bar<foo.baz, foo.qux<foo.quux>>"
+    );
+}
+
+#[test]
+fn test_void() {
+    println!("{:?}", <() as ts_rs::TS>::decl());
 }
 
 impl Default for Api {
