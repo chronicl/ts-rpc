@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "tagged-result", feature(auto_traits, negative_impls))]
+
 use std::{
     collections::{HashMap, HashSet},
     ops::Deref,
@@ -258,9 +260,24 @@ pub mod axum_handler {
         }
     }
 
+    #[cfg(feature = "tagged-result")]
+    trait ResponseBound:
+        Sync + Send + 'static + crate::specialized_serialization::SpecializedSerialize
+    {
+    }
+    #[cfg(feature = "tagged-result")]
+    impl<T> ResponseBound for T where
+        T: Sync + Send + 'static + crate::specialized_serialization::SpecializedSerialize
+    {
+    }
+    #[cfg(not(feature = "tagged-result"))]
+    trait ResponseBound: Sync + Send + 'static + Serialize {}
+    #[cfg(not(feature = "tagged-result"))]
+    impl<T> ResponseBound for T where T: Sync + Send + 'static + Serialize {}
+
     impl<Response, External, F, Fut> ApiFn for HandlerAxum<(), Response, Axum<External>, F>
     where
-        Response: Sync + Send + 'static + Serialize,
+        Response: ResponseBound,
         External: FromRequestParts<()> + Sync + Send + 'static,
         Fut: std::future::Future<Output = Response> + Send + 'static,
         F: Sync + Send + 'static + Clone + Fn(Axum<External>) -> Fut,
@@ -279,7 +296,10 @@ pub mod axum_handler {
                     })?;
 
                 let res = (this.f)(Axum(external)).await;
-                Ok::<Json<Response>, axum::response::Response>(Json(res))
+                #[cfg(feature = "tagged-result")]
+                let res = res.boxed();
+
+                Ok::<_, axum::response::Response>(Json(res))
             };
 
             let router = api.axum_router.take().unwrap();
@@ -290,7 +310,7 @@ pub mod axum_handler {
 
     impl<Response, F, Fut> ApiFn for HandlerAxum<(), Response, (), F>
     where
-        Response: Sync + Send + 'static + Serialize,
+        Response: ResponseBound,
         Fut: std::future::Future<Output = Response> + Send + 'static,
         F: Sync + Send + 'static + Clone + Fn() -> Fut,
     {
@@ -300,7 +320,10 @@ pub mod axum_handler {
             let handler = move || async {
                 let this = self;
                 let res = (this.f)().await;
-                Ok::<Json<Response>, axum::response::Response>(Json(res))
+                #[cfg(feature = "tagged-result")]
+                let res = res.boxed();
+
+                Ok::<_, axum::response::Response>(Json(res))
             };
 
             let router = api.axum_router.take().unwrap();
@@ -315,7 +338,7 @@ pub mod axum_handler {
             for HandlerAxum<($($t,)*), Response, Axum<External>, F>
         where
             $($t: Sync + Send + 'static + DeserializeOwned,)*
-            Response: Sync + Send + 'static + Serialize,
+            Response: ResponseBound,
             External: Sync + Send + 'static + FromRequestParts<()>,
             Fut: std::future::Future<Output = Response> + Send + 'static,
             F: Sync + Send + 'static + Clone + Fn($($t,)* Axum<External>) -> Fut,
@@ -340,7 +363,10 @@ pub mod axum_handler {
                         .0;
 
                     let res = (this.f)($(params.$a,)* Axum(external)).await;
-                    Ok::<Json<Response>, axum::response::Response>(Json(res))
+                    #[cfg(feature = "tagged-result")]
+                    let res = res.boxed();
+
+                    Ok::<_, axum::response::Response>(Json(res))
                 };
 
                 let router = api.axum_router.take().unwrap();
@@ -353,7 +379,7 @@ pub mod axum_handler {
         for HandlerAxum<($($t,)*), Response, (), F>
         where
             $($t: Sync + Send + 'static + DeserializeOwned,)*
-            Response: Sync + Send + 'static + Serialize,
+            Response: ResponseBound,
             Fut: std::future::Future<Output = Response> + Send + 'static,
             F: Sync + Send + 'static + Clone + Fn($($t,)*) -> Fut,
         {
@@ -369,7 +395,10 @@ pub mod axum_handler {
                         .0;
 
                     let res = (this.f)($(params.$a,)*).await;
-                    Ok::<Json<Response>, axum::response::Response>(Json(res))
+                    #[cfg(feature = "tagged-result")]
+                    let res = res.boxed();
+
+                    Ok::<_, axum::response::Response>(Json(res))
                 };
 
                 let router = api.axum_router.take().unwrap();
@@ -449,6 +478,43 @@ impl TsFn {
     pub fn set_response_type<T: ts_rs::TS>(&mut self) {
         self.add_type_definitions::<T>();
         self.response_type = T::name_with_generics();
+    }
+}
+
+#[cfg(feature = "tagged-result")]
+mod specialized_serialization {
+    // Specialized serialization for Result<T, E>
+    #[derive(Debug, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+    #[serde(tag = "result", content = "value")]
+    enum Result<T, E> {
+        Ok(T),
+        Err(E),
+    }
+
+    auto trait NotResult {}
+
+    impl<T, E> !NotResult for std::result::Result<T, E> {}
+
+    pub trait SpecializedSerialize {
+        fn boxed(self) -> Box<dyn erased_serde::Serialize>;
+    }
+
+    impl<T: serde::Serialize + NotResult + 'static> SpecializedSerialize for T {
+        fn boxed(self) -> Box<dyn erased_serde::Serialize> {
+            Box::new(self)
+        }
+    }
+
+    impl<T: serde::Serialize + 'static, E: serde::Serialize + 'static> SpecializedSerialize
+        for std::result::Result<T, E>
+    {
+        fn boxed(self) -> Box<dyn erased_serde::Serialize> {
+            let tagged_result = match self {
+                Ok(ok) => Result::Ok(ok),
+                Err(err) => Result::Err(err),
+            };
+            Box::new(tagged_result)
+        }
     }
 }
 
