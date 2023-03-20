@@ -1,26 +1,30 @@
 use axum::http::{HeaderValue, Method};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 use ts_rpc::{ts_export, ts_rs, Api, TS};
 
 #[tokio::main]
 async fn main() {
-    #[derive(TS, Deserialize)]
+    #[derive(TS, Deserialize, Serialize)]
     struct Password {
         password: String,
     }
+
+    #[derive(TS, Serialize)]
+    struct ReturnType<T> {
+        inner: T,
+    };
 
     #[ts_export]
     async fn login(
         email: String,
         password: Password,
         // axum: Axum<(axum::http::header::HeaderMap,)>,
-    ) -> String {
-        email
+    ) -> ReturnType<Password> {
+        ReturnType { inner: password }
     }
 
-    let mut api = Api::new();
-    api.register_axum(login);
+    let api = Api::new().register_axum(login);
     api.export_ts_client("http://localhost:3003", "../api.ts")
         .unwrap();
 
