@@ -17,4 +17,4 @@ default = ["axum-router"]
 
 [features]
 axum-router = ["axum", "hyper", "serde"]
-tagged-result = ["erased-serde", "serde"]
+tagged-result = ["erased-serde", "serde", "ts-rs/tagged-result"]
