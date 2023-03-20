@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.dependencies]
-ts-rs = { git = "https://github.com/chronicl/ts-rs.git", rev = "4aac8be" }
+ts-rs = { git = "https://github.com/chronicl/ts-rs.git" }
 axum = { version = "0.6" }
 
 [dependencies]

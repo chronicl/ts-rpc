@@ -802,7 +802,7 @@ dependencies = [
 [[package]]
 name = "ts-rs"
 version = "6.2.0"
-source = "git+https://github.com/chronicl/ts-rs.git?rev=4aac8be#4aac8be96d78dc768b2a5469ce2af4b435c78b45"
+source = "git+https://github.com/chronicl/ts-rs.git#be111c5901c06b935f2200f357bc1e89e2bb8b4b"
 dependencies = [
  "thiserror",
  "ts-rs-macros",
@@ -811,7 +811,7 @@ dependencies = [
 [[package]]
 name = "ts-rs-macros"
 version = "6.2.0"
-source = "git+https://github.com/chronicl/ts-rs.git?rev=4aac8be#4aac8be96d78dc768b2a5469ce2af4b435c78b45"
+source = "git+https://github.com/chronicl/ts-rs.git#be111c5901c06b935f2200f357bc1e89e2bb8b4b"
 dependencies = [
  "Inflector",
  "proc-macro2",
