@@ -200,7 +200,7 @@ fn prefix_type(prefix: &str, t: &str) -> String {
 fn is_ts_intrinstic_type(t: &str) -> bool {
     matches!(
         t,
-        "string" | "number" | "boolean" | "any" | "void" | "never" | "unknown"
+        "string" | "number" | "boolean" | "any" | "void" | "never" | "unknown" | "null"
     )
 }
 
