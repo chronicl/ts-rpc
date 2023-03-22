@@ -183,19 +183,20 @@ namespace {fn_name} {{
 }
 
 fn prefix_type(prefix: &str, t: &str) -> String {
-    if is_ts_intrinstic_type(t) {
-        t.to_string()
-    } else if t.starts_with('[') {
-        // tuples
+    println!("{t}");
+    // tuples
+    if t.starts_with('[') {
         let inner = &t[1..t.len() - 1];
         let inner = inner
             .split(',')
             .map(|t| prefix_type(prefix, t.trim()))
             .collect::<Vec<_>>()
             .join(", ");
-        format!("[{}]", inner)
-    } else if let Some(start) = t.find('<') {
-        // generic types
+        return format!("[{}]", inner);
+    }
+
+    // generic types
+    let (mut ty, generics) = if let Some(start) = t.find('<') {
         let end = t.rfind('>').unwrap();
         let inner = &t[start + 1..end];
         let inner = inner
@@ -203,10 +204,17 @@ fn prefix_type(prefix: &str, t: &str) -> String {
             .map(|t| prefix_type(prefix, t.trim()))
             .collect::<Vec<_>>()
             .join(", ");
-        format!("{}.{}<{}>", prefix, &t[..start], inner)
+        (t[..start].to_string(), format!("<{}>", inner))
     } else {
-        format!("{}.{}", prefix, t)
+        (t.to_string(), String::new())
+    };
+
+    // only prefixing if not a typescript intrinsic type
+    if !is_ts_intrinstic_type(&ty) {
+        ty = format!("{}.{}", prefix, ty);
     }
+
+    format!("{}{}", ty, generics)
 }
 
 fn is_ts_intrinstic_type(t: &str) -> bool {
@@ -229,17 +237,14 @@ fn test_prefix_type() {
         "foo.bar<foo.baz, foo.qux<foo.quux>>"
     );
     assert_eq!(
-        prefix_type("foo", "[bar<barr>, baz<bazz>]"),
-        "[foo.bar<foo.barr>, foo.baz<foo.bazz>]"
+        prefix_type("foo", "[bar<barr>, Array<bazz>]"),
+        "[foo.bar<foo.barr>, Array<foo.bazz>]"
     );
 }
 
 #[test]
 fn test_void() {
-    println!(
-        "{:?}",
-        <(Vec<u32>, Vec<i32>) as ts_rs::TS>::name_with_generics()
-    );
+    println!("{:?}", prefix_type("a", "[Array<SignUp>, Array<SignUp>]"));
 }
 
 impl Default for Api {
