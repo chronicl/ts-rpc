@@ -182,39 +182,79 @@ namespace {fn_name} {{
     }
 }
 
-fn prefix_type(prefix: &str, t: &str) -> String {
-    println!("{t}");
-    // tuples
-    if t.starts_with('[') {
-        let inner = &t[1..t.len() - 1];
-        let inner = inner
-            .split(',')
-            .map(|t| prefix_type(prefix, t.trim()))
-            .collect::<Vec<_>>()
-            .join(", ");
-        return format!("[{}]", inner);
+/// s must start with `open`
+fn find_matching_delimiter(s: &str, open: char, close: char) -> Option<usize> {
+    let mut open_count = 0;
+    for (i, c) in s.chars().enumerate() {
+        if c == open {
+            open_count += 1;
+        } else if c == close {
+            open_count -= 1;
+        }
+        if open_count == 0 {
+            return Some(i);
+        }
+    }
+    None
+}
+
+fn prefix_type(prefix: &str, mut t: &str) -> String {
+    fn prefix_type_inner<'a>(prefix: &str, t: &'a str) -> (String, &'a str) {
+        let t = t.trim();
+
+        let delimiters = match t.chars().next() {
+            Some('[') => Some(('[', ']')),
+            Some('<') => Some(('<', '>')),
+            _ => None,
+        };
+
+        if let Some(delimiters) = delimiters {
+            let end = find_matching_delimiter(t, delimiters.0, delimiters.1).unwrap();
+
+            let mut entries = Vec::new();
+            let mut inner = &t[1..end];
+            while !inner.is_empty() {
+                let (entry, next) = prefix_type_inner(prefix, inner);
+                entries.push(entry);
+                inner = next.trim_start_matches(',').trim();
+            }
+
+            (
+                format!("{}{}{}", delimiters.0, entries.join(", "), delimiters.1),
+                &t[end + 1..],
+            )
+        } else {
+            // we have a type ident
+            let end = t
+                .find(|c: char| !c.is_alphanumeric() && c != '_')
+                .unwrap_or(t.len());
+            let ty = &t[..end];
+
+            let ty = if !is_ts_intrinstic_type(ty) {
+                format!("{}.{}", prefix, ty)
+            } else {
+                ty.to_string()
+            };
+
+            // check if we have generics and if so parse them
+            if let Some(next) = t[end..].chars().next() {
+                if next == '<' {
+                    let (generics, next) = prefix_type_inner(prefix, &t[end..]);
+                    return (format!("{}{}", ty, generics), next);
+                }
+            }
+
+            (ty, &t[end..])
+        }
     }
 
-    // generic types
-    let (mut ty, generics) = if let Some(start) = t.find('<') {
-        let end = t.rfind('>').unwrap();
-        let inner = &t[start + 1..end];
-        let inner = inner
-            .split(',')
-            .map(|t| prefix_type(prefix, t.trim()))
-            .collect::<Vec<_>>()
-            .join(", ");
-        (t[..start].to_string(), format!("<{}>", inner))
-    } else {
-        (t.to_string(), String::new())
-    };
-
-    // only prefixing if not a typescript intrinsic type
-    if !is_ts_intrinstic_type(&ty) {
-        ty = format!("{}.{}", prefix, ty);
+    let mut result = String::new();
+    while !t.is_empty() {
+        let (entry, next) = prefix_type_inner(prefix, t);
+        result.push_str(&entry);
+        t = next;
     }
-
-    format!("{}{}", ty, generics)
+    result
 }
 
 fn is_ts_intrinstic_type(t: &str) -> bool {
@@ -233,8 +273,8 @@ fn test_prefix_type() {
         "foo.bar<foo.baz, foo.qux>"
     );
     assert_eq!(
-        prefix_type("foo", "bar<baz, qux<quux>>"),
-        "foo.bar<foo.baz, foo.qux<foo.quux>>"
+        prefix_type("foo", "bar<baz, qux<quux<number, number>>>"),
+        "foo.bar<foo.baz, foo.qux<foo.quux<number, number>>>"
     );
     assert_eq!(
         prefix_type("foo", "[bar<barr>, Array<bazz>]"),
@@ -244,7 +284,10 @@ fn test_prefix_type() {
 
 #[test]
 fn test_void() {
-    println!("{:?}", prefix_type("a", "[Array<SignUp>, Array<SignUp>]"));
+    println!(
+        "{:?}",
+        prefix_type("a", "Result<[Array<SignUp>, Array<SignUp>], string>")
+    );
 }
 
 impl Default for Api {
