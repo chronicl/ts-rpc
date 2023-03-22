@@ -185,7 +185,17 @@ namespace {fn_name} {{
 fn prefix_type(prefix: &str, t: &str) -> String {
     if is_ts_intrinstic_type(t) {
         t.to_string()
+    } else if t.starts_with('[') {
+        // tuples
+        let inner = &t[1..t.len() - 1];
+        let inner = inner
+            .split(',')
+            .map(|t| prefix_type(prefix, t.trim()))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("[{}]", inner)
     } else if let Some(start) = t.find('<') {
+        // generic types
         let end = t.rfind('>').unwrap();
         let inner = &t[start + 1..end];
         let inner = inner
@@ -202,7 +212,7 @@ fn prefix_type(prefix: &str, t: &str) -> String {
 fn is_ts_intrinstic_type(t: &str) -> bool {
     matches!(
         t,
-        "string" | "number" | "boolean" | "any" | "void" | "never" | "unknown" | "null"
+        "string" | "number" | "boolean" | "any" | "void" | "never" | "unknown" | "null" | "Array"
     )
 }
 
@@ -218,11 +228,18 @@ fn test_prefix_type() {
         prefix_type("foo", "bar<baz, qux<quux>>"),
         "foo.bar<foo.baz, foo.qux<foo.quux>>"
     );
+    assert_eq!(
+        prefix_type("foo", "[bar<barr>, baz<bazz>]"),
+        "[foo.bar<foo.barr>, foo.baz<foo.bazz>]"
+    );
 }
 
 #[test]
 fn test_void() {
-    println!("{:?}", <() as ts_rs::TS>::decl());
+    println!(
+        "{:?}",
+        <(Vec<u32>, Vec<i32>) as ts_rs::TS>::name_with_generics()
+    );
 }
 
 impl Default for Api {
