@@ -96,9 +96,7 @@ impl Api {
                 .map(|t| t.0)
                 .collect::<Vec<_>>()
                 .join(", ");
-            println!("{}: {}", fn_name, ts_fn.response_type);
             let response_type = prefix_type(fn_name, &ts_fn.response_type);
-            println!("{}", response_type);
             let server_url = server_url.as_ref();
 
             function_definitions += &format!(
