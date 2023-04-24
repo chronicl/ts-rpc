@@ -87,13 +87,7 @@ impl Api {
             let params = ts_fn
                 .request_types
                 .iter()
-                .map(|t| {
-                    if is_ts_intrinstic_type(&t.1) {
-                        format!("{}: {}", t.0, t.1)
-                    } else {
-                        format!("{}: {}", t.0, prefix_type(fn_name, &t.1))
-                    }
-                })
+                .map(|t| format!("{}: {}", t.0, prefix_type(fn_name, &t.1)))
                 .collect::<Vec<_>>()
                 .join(", ");
             let param_names = &ts_fn
@@ -102,7 +96,9 @@ impl Api {
                 .map(|t| t.0)
                 .collect::<Vec<_>>()
                 .join(", ");
+            println!("{}: {}", fn_name, ts_fn.response_type);
             let response_type = prefix_type(fn_name, &ts_fn.response_type);
+            println!("{}", response_type);
             let server_url = server_url.as_ref();
 
             function_definitions += &format!(
@@ -267,6 +263,7 @@ fn is_ts_intrinstic_type(t: &str) -> bool {
 #[test]
 fn test_prefix_type() {
     assert_eq!(prefix_type("foo", "bar"), "foo.bar");
+    assert_eq!(prefix_type("foo", "string"), "string");
     assert_eq!(prefix_type("foo", "bar<baz>"), "foo.bar<foo.baz>");
     assert_eq!(
         prefix_type("foo", "bar<baz, qux>"),
@@ -279,6 +276,10 @@ fn test_prefix_type() {
     assert_eq!(
         prefix_type("foo", "[bar<barr>, Array<bazz>]"),
         "[foo.bar<foo.barr>, Array<foo.bazz>]"
+    );
+    assert_eq!(
+        prefix_type("list_products", "Array<Product>"),
+        "Array<list_products.Product>"
     );
 }
 
