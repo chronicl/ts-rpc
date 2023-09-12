@@ -30,39 +30,44 @@ impl Api {
         }
     }
 
+    pub fn ts_client(&self, server_url: impl AsRef<str>) -> std::io::Result<String> {
+        self.ts_client_choice(server_url, true, true)
+    }
+
     /// Exports a typescript client to the given file path.
     ///
     /// Only registered functions are exported and if a registered function does not use
-    /// `#[ts_export]` this function panics. If you want to modify this behavior use `export_ts_client_choice`.
+    /// `#[ts_export]` this function panics. If you want to modify this behavior use `ts_client_choice`.
     pub fn export_ts_client(
         &self,
         server_url: impl AsRef<str>,
         file_path: impl AsRef<Path>,
     ) -> std::io::Result<()> {
-        self.export_ts_client_choice(server_url, file_path, true, true)
-    }
+        let content = self.ts_client_choice(server_url, true, true)?;
 
-    /// Exports a typescript client to the given file path.
-    /// If `export_only_registered` is `true` all functions, wether registered or not,
-    /// will be exported.
-    pub fn export_ts_client_choice(
-        &self,
-        server_url: impl AsRef<str>,
-        file_path: impl AsRef<Path>,
-        export_only_registered: bool,
-        registered_must_be_exported: bool,
-    ) -> std::io::Result<()> {
         // path without file
         if let Some(parent) = file_path.as_ref().parent() {
             std::fs::create_dir_all(parent)?;
         }
+        std::fs::write(file_path, content)
+    }
+
+    /// Exports a typescript client to the given file path.
+    /// If `only_registered` is `false` all functions, wether registered or not,
+    /// will be exported.
+    pub fn ts_client_choice(
+        &self,
+        server_url: impl AsRef<str>,
+        only_registered: bool,
+        registered_must_be_exported: bool,
+    ) -> std::io::Result<String> {
         let mut function_definitions = String::new();
 
         // For detecting duplicate function names, declaring exports
         let mut fn_names = HashSet::new();
 
         for ts_fn in inventory::iter::<LazyTsFn>().map(|f| f.0.deref()) {
-            if export_only_registered && !self.registered_fn_names.contains(&ts_fn.name) {
+            if only_registered && !self.registered_fn_names.contains(&ts_fn.name) {
                 continue;
             }
 
@@ -142,8 +147,8 @@ namespace {fn_name} {{
             "{}\n{}\nnamespace __request {{\n{}\n}}",
             exports, function_definitions, TS_REQUEST
         );
-        std::fs::write(file_path, content)?;
-        Ok(())
+
+        Ok(content)
     }
 
     #[cfg(feature = "axum-router")]
