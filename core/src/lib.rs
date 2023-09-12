@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "tagged-result", feature(auto_traits, negative_impls))]
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     ops::Deref,
     path::Path,
 };
@@ -64,9 +64,12 @@ impl Api {
         let mut function_definitions = String::new();
 
         // For detecting duplicate function names, declaring exports
-        let mut fn_names = HashSet::new();
+        let mut fn_names = BTreeSet::new();
 
-        for ts_fn in inventory::iter::<LazyTsFn>().map(|f| f.0.deref()) {
+        let mut ts_fns: Vec<_> = inventory::iter::<LazyTsFn>().map(|f| f.0.deref()).collect();
+        ts_fns.sort_by_key(|f| f.name);
+
+        for ts_fn in ts_fns {
             if only_registered && !self.registered_fn_names.contains(&ts_fn.name) {
                 continue;
             }
@@ -309,7 +312,7 @@ pub mod axum_handler {
     use super::{function_name, Api, ApiFn};
     use axum::extract::{FromRequest, FromRequestParts, Json};
     use axum::response::IntoResponse;
-    use serde::{de::DeserializeOwned, Serialize};
+    use serde::de::DeserializeOwned;
 
     #[derive(Clone, Debug)]
     pub struct Axum<T>(pub T);
@@ -499,7 +502,7 @@ fn type_name_of_val<T: ?Sized>(_val: &T) -> &'static str {
 pub struct TsFn {
     pub name: &'static str,
     // .. -> type declaration in typescript
-    pub type_declarations: HashMap<ts_rs::Id, String>,
+    pub type_declarations: BTreeMap<ts_rs::Id, String>,
     // parameter name -> typescript type name with generics filled in
     pub request_types: Vec<(&'static str, String)>,
     // typescript type name with generics filled in
@@ -520,9 +523,9 @@ impl TsFn {
     pub fn new(name: &'static str) -> Self {
         Self {
             name,
-            type_declarations: HashMap::new(),
-            request_types: Vec::new(),
-            response_type: String::new(),
+            type_declarations: Default::default(),
+            request_types: Default::default(),
+            response_type: Default::default(),
         }
     }
 
