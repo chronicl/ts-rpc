@@ -4,16 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = [
-  "core",
-  "macros",
-  ".",
-  "examples/axum"
-]
+members = ["core", "macros", ".", "examples/axum"]
 
 [workspace.dependencies]
 ts-rs = { git = "https://github.com/chronicl/ts-rs.git" }
-axum = { version = "0.6" }
+axum = { version = "0.7" }
 
 [dependencies]
 ts-rs = { workspace = true }

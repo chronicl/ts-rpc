@@ -357,7 +357,7 @@ pub mod axum_handler {
         fn register(self, api: &mut Api) {
             let path = format!("/{}", function_name(&self.f));
 
-            let handler = move |request: axum::http::Request<hyper::Body>| async {
+            let handler = move |request: axum::http::Request<axum::body::Body>| async {
                 let this = self;
 
                 let (mut parts, body) = request.into_parts();
@@ -418,7 +418,7 @@ pub mod axum_handler {
             fn register(self, api: &mut Api) {
                 let path = format!("/{}", function_name(&self.f));
 
-                let handler = move |request: axum::http::Request<hyper::Body>| async {
+                let handler = move |request: axum::http::Request<axum::body::Body>| async {
                     let this = self;
 
                     let (mut parts, body) = request.into_parts();
@@ -458,7 +458,7 @@ pub mod axum_handler {
             fn register(self, api: &mut Api) {
                 let path = format!("/{}", function_name(&self.f));
 
-                let handler = move |request: axum::http::Request<hyper::Body>| async {
+                let handler = move |request: axum::http::Request<axum::body::Body>| async {
                     let this = self;
 
                     let params: ($($t,)*) = Json::from_request(request, &())
